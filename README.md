@@ -19,5 +19,7 @@ Keeping in mind the above points i designed the following architecture-
 2. A django application which will facilitate :
         - Viewing all videos by latest published date
         - Searching within the results
-3.My main challenge was the database selection and to optimise the searching within the database i adopted elasticsearch as it will be easy to phrase search on top of it.
-4. Also to optimise the reading the website serves all results by page which means - you see the latest data always but in sets of 10 at a time and the data for next 10 videos is only queried once the user clicks on next page option. 
+3. I initially used Mysql, but had to replace it since it was not an optimal selection to search within the dataset and the size of the dataset will cause delays moving further.
+4. To optimise the searching within the database i implemented elasticsearch and replaced MySQL as it will be easy to phrase search on top of it and the reading will also be optimised.
+5. Also to optimise the reading the website serves all results by page which means - you see the latest data always but in sets of 10 at a time and the data for next 10 videos is only queried once the user clicks on next page option. 
+
