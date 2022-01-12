@@ -1,5 +1,5 @@
 from flask import Flask
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 from elasticsearch import Elasticsearch
 import json
 # from datetime import datetime
@@ -8,12 +8,13 @@ from datetime import datetime, timezone, timedelta
 import mysql.connector
 from sqlalchemy import create_engine
 import pandas as pd
+from elasticsearch import helpers
 
 es=Elasticsearch("http://localhost:9200")
 db_connection_str = 'mysql+pymysql://root:root@localhost/youtube_data'
 db_connection = create_engine(db_connection_str)
 
-df = pd.read_sql('SELECT * FROM Videos', con=db_connection)
+df = pd.read_sql('SELECT * FROM youtube_videos', con=db_connection)
 print("df",df)
 
 #line:
@@ -29,26 +30,59 @@ def write():
     time=local_time.isoformat()
     print("TIME:",time)
 
-    youtube_key='AIzaSyBKgW_UGx_U6XswobiA4iKWppXLn3uDmcI'
+    youtube_key='AIzaSyBLmwdjd5lkCIXU6Mql2F2r5fbZ7-1MbQ4'
     
     search_url = 'https://www.googleapis.com/youtube/v3/search'
     
     params = {
             'part' : 'snippet',
-            'q' : 'kdramas',
+            'q' : 'cats',
             'key' : youtube_key,
             'publishedAfter' : time,
             'maxResults' : 50
         }
     r=requests.get(search_url,params=params)
-    print("r text=",r.text)
+    # print("r text=",r.text)
     res = json.loads(r.text)
 
     #Writing to db for page 1
     result_set=[[item["id"]["videoId"],item["snippet"]["title"],item["snippet"]["description"],item["snippet"]["thumbnails"]["default"]["url"],item["snippet"]["publishedAt"].replace("T"," ").replace("Z","")] for item in res["items"] if item["id"]["kind"]=="youtube#video"]
 
-    df=pd.DataFrame(result_set,columns=["videoId", "title", "description", "thumbnail","publishedat"])        
-    df.to_sql("Videos",con=db_connection,if_exists="append",index=False)
+    df=pd.DataFrame(result_set,columns=["videoId", "title", "description", "thumbnail","publishedat"])  
+    # df.drop_duplicates(subset=["videoId"],inplace=True)     
+    # df.to_sql("youtube_videos",con=db_connection,if_exists="append",index=False)
+    # data_onlyes = list(
+    #     df.apply(
+    #     lambda x:{
+    #         "_index":"completedataindex",
+    #         "_type":"doc",
+    #         "_source":{
+    #             "videoId":x.videoId,
+    #             "title":x.title,
+    #             "description":x.description,
+    #             "thumbnail":x.thumbnail,
+    #             "publisdhedat":x.publishedat
+    #         }
+    #     },
+    #     axis=1
+    #     )
+    # )
+    # data_essql = list(
+    #     df.apply(
+    #     lambda x:{
+    #         "_index":"idindex",
+    #         "_type":"doc",
+    #         "_source":{
+    #             "text":x.title+" "+x.description,
+    #             "videoId":x.videoId,
+    #             "publisdhedat":x.publishedat
+    #         }
+    #     },
+    #     axis=1
+    #     )
+    # ) 
+    # helpers.bulk(es,data_onlyes)
+    # helpers.bulk(es,data_essql)
     pno=1
     while "nextPageToken" in res:
         pno+=1
@@ -62,15 +96,55 @@ def write():
             'pageToken' : res["nextPageToken"]
         }
         r=requests.get(search_url,params=params)
-        print("r text=",r.text)
+        # print("r text=",r.text)
 
         res = json.loads(r.text)
         
         #Writing to db for rest pages
         result_set=[[item["id"]["videoId"],item["snippet"]["title"],item["snippet"]["description"],item["snippet"]["thumbnails"]["default"]["url"],item["snippet"]["publishedAt"].replace("T"," ").replace("Z","")] for item in res["items"] if item["id"]["kind"]=="youtube#video"]
 
-        df=pd.DataFrame(result_set,columns=["videoId", "title", "description", "thumbnail","publishedat"])        
-        df.to_sql("Videos",con=db_connection,if_exists="append",index=False)
+        df=pd.concat([df,pd.DataFrame(result_set,columns=["videoId", "title", "description", "thumbnail","publishedat"])]) 
+    df = df.dropna()
+    df = df.drop_duplicates(subset=["videoId"],keep='first').copy()
+    print(df.videoId.value_counts()[df.videoId.value_counts()>1])  
+    # df.to_csv('temp.csv')     
+    try:   
+        df.to_sql("youtube_videos",con=db_connection,if_exists="append",index=False)
+    except:
+        print("error occured skipping")
+    df.publishedat = pd.to_datetime(df.publishedat)
+    data_onlyes = list(
+        df.apply(
+        lambda x:{
+            "_index":"completedataindex",
+            "_type":"doc",
+            "_source":{
+                "videoId":x.videoId,
+                "title":x.title,
+                "description":x.description,
+                "thumbnail":x.thumbnail,
+                "publishedat":x.publishedat
+            }
+        },
+        axis=1
+        )
+    )
+    data_essql = list(
+        df.apply(
+        lambda x:{
+            "_index":"idindex",
+            "_type":"doc",
+            "_source":{
+                "text":x.title+" "+x.description,
+                "videoId":x.videoId,
+                "publishedat":x.publishedat
+            }
+        },
+        axis=1
+        )
+    )
+    helpers.bulk(es,data_onlyes)
+    helpers.bulk(es,data_essql)
 
 # mydb = mysql.connector.connect(
 #   host="localhost",
@@ -81,7 +155,7 @@ def write():
 
 # mycursor = mydb.cursor()
 # mycursor.execute("SHOW DATABASES")
-# mycursor.execute("CREATE TABLE IF NOT EXISTS Videos(ID int NOT NULL AUTO_INCREMENT,videoId varchar(255) NOT NULL,title varchar(255),description varchar(255),thumbnail varchar(255),info_one varchar(255),info_two varchar(255),publishedat DATETIME,PRIMARY KEY (ID));")
+# mycursor.execute("CREATE TABLE IF NOT EXISTS youtube_videos(ID int NOT NULL AUTO_INCREMENT,videoId varchar(255) NOT NULL,title varchar(255),description varchar(255),thumbnail varchar(255),info_one varchar(255),info_two varchar(255),publishedat DATETIME,PRIMARY KEY (ID));")
 
 
 # for x in mycursor:
@@ -89,8 +163,8 @@ def write():
 
 
 
-sched = BackgroundScheduler(daemon=True)
-sched.add_job(write,'interval',seconds=20)  
+sched = BlockingScheduler()
+sched.add_job(write,'interval',seconds=10)  
 sched.start()
     
 app = Flask(__name__)
@@ -101,5 +175,5 @@ def home():
     return "Welcome Home :) !"
 
 if __name__ == "_main_":
-    app.run()
+    app.run(use_reloader=False)
 

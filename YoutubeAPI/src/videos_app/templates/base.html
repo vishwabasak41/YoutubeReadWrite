@@ -1,0 +1,85 @@
+{% extends "index.html" %}
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Search YouTube</title>
+    <!-- Bootstrap core CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+    </style>
+    <!-- Custom styles for this template -->
+    <link href="{% static 'css/index.css' %}" rel="stylesheet">
+  </head>
+  <body>
+ {% block youtube %}
+<main role="main">
+<div class="album py-5 bg-light">
+    <div class="container">
+      <div class="row">
+        {% for video in videos %}
+        <div class="col-md-4">
+          <div class="card mb-4 shadow-sm">
+            <img class="bd-placeholder-img card-img-top" width="100%" height="225" src="{{ video.thumbnail }}" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail"></img>
+            <div class="card-body">
+              <p class="card-text">{{ video.title }}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">{{ video.description }}</small>
+              </div>
+              <div class="btn-group">
+                <a type="button" style="color: antiquewhite;" href="https://www.youtube.com/watch?v={{ video.videoid }}" class="btn btn-primary btn-sm btn-outline-secondary">View</a>
+                <small class="text-muted">{{ video.publishedat }}</small>
+            </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <nav>
+  {% if videos.has_other_pages %}
+  <ul class="pagination justify-content-center">
+    {% if videos.has_previous %}
+      <li class="page-item"><a href="?page={{ videos.previous_page_number }}">&laquo;</a></li>
+    {% else %}
+      <li class="page-item disabled"><span>&laquo;</span></li>
+    {% endif %}
+    {% for i in videos.paginator.page_range %}
+      {% if videos.number == i %}
+        <li class="page-item active"><span class="btn-outline-secondary">{{ i }} <span class="sr-only">(current)</span></span></li>
+      {% else %}
+        <li class="page-item"><a href="?page={{ i }}">{{ i }}</a></li>
+      {% endif %}
+    {% endfor %}
+    {% if videos.has_next %}
+      <li class="page-item"><a class="btn-outline-secondary" href="?page={{ videos.next_page_number }}">&raquo;</a></li>
+    {% else %}
+      <li class="page-item disabled"><span>&raquo;</span></li>
+    {% endif %}
+  </ul>
+{% endif %}
+</nav>
+{% endblock %}
+<button type="submit" name="submit" value="search" class="btn btn-primary my-2">Next Page</button>
+
+</main>
+</body>
+</html>
