@@ -2,7 +2,7 @@ Hi,
 
 This project has been directed towards the creation of system where:-
 
-1.We are querying the Youtube API every 1 minute to retrieve latest data currently related to 'cricket'
+1.We are querying the Youtube API every 1 minute to retrieve latest data currently related to 'cats'
 2.Serving a web application where the users will be able to view all the videos and will be able to search on them based on any phrases.
 
 Initial insights from the requirement-
