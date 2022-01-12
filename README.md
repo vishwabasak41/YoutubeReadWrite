@@ -21,5 +21,5 @@ Keeping in mind the above points i designed the following architecture-
         - Searching within the results
 3. I initially used Mysql, but had to replace it since it was not an optimal selection to search within the dataset and the size of the dataset will cause delays moving further.
 4. To optimise the searching within the database i implemented elasticsearch and replaced MySQL as it will be easy to phrase search on top of it and the reading will also be optimised.
-5. Also to optimise the reading the website serves all results by page which means - you see the latest data always but in sets of 10 at a time and the data for next 10 videos is only queried once the user clicks on next page option. 
-
+5.Another place for optimisation was the way the full text search was performed,so i created a flow where used stored title+description, id and date in elastic search and queried on it to get relevant video-ids and used extracted videos-ids to get all data from MySql tables. Although this led to faster searches but increased response time so decided to use only elasticsearch for generating response to the user.
+6. And to optimise the reading the website serves all results by page which means - you see the latest data always but in sets of 10 at a time and the data for next 10 videos is only queried once the user clicks on next page option. So only the data supposed to be shown to user reamins inmemory and on next page selection next batch of data is fetched thus making it scalable.
